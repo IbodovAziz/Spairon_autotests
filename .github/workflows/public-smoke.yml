@@ -1,4 +1,4 @@
-name: Public Smoke CI
+name: Публичные smoke-тесты
 
 on:
   push:
@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   public-smoke:
-    name: Public Playwright smoke
+    name: Публичные Playwright-тесты
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -28,28 +28,28 @@ jobs:
       SPAIRON_API_URL: https://server.spairon.ru
 
     steps:
-      - name: Checkout repository
+      - name: Получить код репозитория
         uses: actions/checkout@v6
 
-      - name: Setup Node.js
+      - name: Настроить Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
 
-      - name: Install dependencies
+      - name: Установить зависимости
         run: npm ci
 
-      - name: Typecheck
+      - name: Проверить TypeScript
         run: npm run typecheck
 
-      - name: Install Chromium
+      - name: Установить Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run public smoke tests
+      - name: Запустить публичные smoke-тесты
         run: npm run test:public
 
-      - name: Upload public test report
+      - name: Опубликовать отчёт
         id: report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
@@ -61,15 +61,24 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      - name: Publish summary and notify on failure
-        if: ${{ always() && github.event_name != 'pull_request' }}
+      - name: Сформировать сводку и уведомить об ошибке
+        if: ${{ always() }}
         continue-on-error: true
         run: node scripts/ci-report.mjs
         env:
           JOB_STATUS: ${{ job.status }}
-          NOTIFY_MODE: failures
+          NOTIFY_MODE: ${{ github.event_name == 'pull_request' && 'never' || 'failures' }}
           REPORT_URL: ${{ steps.report.outputs.artifact-url }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          WORKFLOW_LABEL: Public smoke CI
+          WORKFLOW_LABEL: Публичные smoke-тесты
+          ENVIRONMENT_LABEL: Production, публичный контур
+          TARGET_URL: https://app.spairon.ru
+          REPOSITORY_NAME: ${{ github.repository }}
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+          ACTOR_NAME: ${{ github.triggering_actor }}
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}

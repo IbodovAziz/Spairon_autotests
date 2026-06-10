@@ -1,7 +1,7 @@
 # Spairon autotests
 
-[![Public Smoke CI](https://github.com/IbodovAziz/Spairon_autotests/actions/workflows/public-smoke.yml/badge.svg)](https://github.com/IbodovAziz/Spairon_autotests/actions/workflows/public-smoke.yml)
-[![Production Smoke](https://github.com/IbodovAziz/Spairon_autotests/actions/workflows/production-smoke.yml/badge.svg)](https://github.com/IbodovAziz/Spairon_autotests/actions/workflows/production-smoke.yml)
+[![Публичные smoke-тесты](https://github.com/IbodovAziz/Spairon_autotests/actions/workflows/public-smoke.yml/badge.svg)](https://github.com/IbodovAziz/Spairon_autotests/actions/workflows/public-smoke.yml)
+[![Мониторинг production](https://github.com/IbodovAziz/Spairon_autotests/actions/workflows/production-smoke.yml/badge.svg)](https://github.com/IbodovAziz/Spairon_autotests/actions/workflows/production-smoke.yml)
 
 Подробное описание сценариев, ожидаемых результатов и последнего контрольного
 прогона: [docs/TEST_CASES.md](docs/TEST_CASES.md).

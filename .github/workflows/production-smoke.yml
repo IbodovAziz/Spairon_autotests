@@ -1,4 +1,4 @@
-name: Production Smoke Monitoring
+name: Мониторинг production
 
 on:
   schedule:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
   workflow_run:
     workflows:
-      - Public Smoke CI
+      - Публичные smoke-тесты
     types:
       - completed
 
@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   production-smoke:
-    name: Full production-safe suite
+    name: Полный production-safe набор
     if: >-
       vars.ENABLE_PRODUCTION_SMOKE == 'true' &&
       (
@@ -43,55 +43,55 @@ jobs:
       SPAIRON_TEST_VACANCY_ID: ${{ secrets.SPAIRON_TEST_VACANCY_ID }}
 
     steps:
-      - name: Checkout repository
+      - name: Получить код репозитория
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      - name: Validate required secrets
+      - name: Проверить обязательные secrets
         shell: bash
         env:
           REPORT_ARCHIVE_PASSWORD: ${{ secrets.REPORT_ARCHIVE_PASSWORD }}
         run: |
           test -n "$SPAIRON_TEST_EMAIL" || {
-            echo "::error::SPAIRON_TEST_EMAIL secret is not configured"
+            echo "::error::Secret SPAIRON_TEST_EMAIL не настроен"
             exit 1
           }
           test -n "$SPAIRON_TEST_PASSWORD" || {
-            echo "::error::SPAIRON_TEST_PASSWORD secret is not configured"
+            echo "::error::Secret SPAIRON_TEST_PASSWORD не настроен"
             exit 1
           }
           test -n "$REPORT_ARCHIVE_PASSWORD" || {
-            echo "::error::REPORT_ARCHIVE_PASSWORD secret is not configured"
+            echo "::error::Secret REPORT_ARCHIVE_PASSWORD не настроен"
             exit 1
           }
 
-      - name: Setup Node.js
+      - name: Настроить Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
 
-      - name: Install dependencies
+      - name: Установить зависимости
         run: npm ci
 
-      - name: Typecheck
+      - name: Проверить TypeScript
         run: npm run typecheck
 
-      - name: Install Chromium
+      - name: Установить Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run full production-safe suite
+      - name: Запустить полный production-safe набор
         run: npm run test:all
 
-      - name: Encrypt production report
+      - name: Зашифровать production-отчёт
         if: ${{ !cancelled() }}
         shell: bash
         env:
           REPORT_ARCHIVE_PASSWORD: ${{ secrets.REPORT_ARCHIVE_PASSWORD }}
         run: |
           if [[ ! -d playwright-report && ! -d test-results ]]; then
-            echo "No report files were generated"
+            echo "Файлы отчёта не были созданы"
             exit 0
           fi
 
@@ -103,7 +103,7 @@ jobs:
             -pass env:REPORT_ARCHIVE_PASSWORD
           rm production-playwright-report.tar.gz
 
-      - name: Upload encrypted production report
+      - name: Опубликовать зашифрованный отчёт
         id: report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
@@ -113,7 +113,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-      - name: Publish summary and notify
+      - name: Сформировать сводку и отправить уведомление
         if: ${{ always() }}
         continue-on-error: true
         run: node scripts/ci-report.mjs
@@ -124,4 +124,13 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          WORKFLOW_LABEL: Production smoke monitoring
+          WORKFLOW_LABEL: Мониторинг production
+          ENVIRONMENT_LABEL: Production, авторизованный контур
+          TARGET_URL: https://app.spairon.ru
+          REPOSITORY_NAME: ${{ github.repository }}
+          BRANCH_NAME: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+          EVENT_NAME: ${{ github.event.workflow_run.event || github.event_name }}
+          ACTOR_NAME: ${{ github.triggering_actor }}
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
