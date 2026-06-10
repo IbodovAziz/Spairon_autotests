@@ -40,16 +40,22 @@ Workflow:
 
 Запускается:
 
-- после успешных `Публичных smoke-тестов` для push в `main`;
+- после успешных `Публичных smoke-тестов` для push в `main` или ручного
+  запуска публичного workflow в ветке `main`;
 - ежедневно в `06:00` и `18:00` UTC, то есть в `09:00` и `21:00` по Москве;
 - вручную через GitHub Actions.
 
 Workflow запускает полный набор из 31 теста одним worker. Параллельные
 production-запуски запрещены.
 
-Production workflow после CI принимает только успешный push в `main` из этого
-же репозитория. Код из pull request или fork не выполняется с production
-secrets.
+Production workflow после CI принимает только успешный push или ручной запуск
+публичного workflow в `main` из этого же репозитория. Код из pull request или
+fork не выполняется с production secrets.
+
+Кнопка `Re-run all jobs` не меняет исходное событие запуска. Например, старый
+workflow со статусом **Skipped** после повторного запуска сохранит прежний
+контекст. После изменения условий используйте новый `Run workflow` или новый
+push.
 
 ## Repository secrets
 
