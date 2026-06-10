@@ -4,3 +4,4 @@ playwright/.auth/*.json
 playwright-report/
 test-results/
 blob-report/
+production-playwright-report.tar.gz*

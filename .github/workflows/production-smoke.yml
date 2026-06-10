@@ -1,0 +1,127 @@
+name: Production Smoke Monitoring
+
+on:
+  schedule:
+    - cron: "0 6,18 * * *"
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Public Smoke CI
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: false
+
+jobs:
+  production-smoke:
+    name: Full production-safe suite
+    if: >-
+      vars.ENABLE_PRODUCTION_SMOKE == 'true' &&
+      (
+        github.event_name != 'workflow_run' ||
+        (
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          github.event.workflow_run.head_repository.full_name == github.repository
+        )
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      CI: "true"
+      SPAIRON_APP_URL: https://app.spairon.ru
+      SPAIRON_API_URL: https://server.spairon.ru
+      SPAIRON_TEST_EMAIL: ${{ secrets.SPAIRON_TEST_EMAIL }}
+      SPAIRON_TEST_PASSWORD: ${{ secrets.SPAIRON_TEST_PASSWORD }}
+      SPAIRON_TEST_VACANCY_ID: ${{ secrets.SPAIRON_TEST_VACANCY_ID }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Validate required secrets
+        shell: bash
+        env:
+          REPORT_ARCHIVE_PASSWORD: ${{ secrets.REPORT_ARCHIVE_PASSWORD }}
+        run: |
+          test -n "$SPAIRON_TEST_EMAIL" || {
+            echo "::error::SPAIRON_TEST_EMAIL secret is not configured"
+            exit 1
+          }
+          test -n "$SPAIRON_TEST_PASSWORD" || {
+            echo "::error::SPAIRON_TEST_PASSWORD secret is not configured"
+            exit 1
+          }
+          test -n "$REPORT_ARCHIVE_PASSWORD" || {
+            echo "::error::REPORT_ARCHIVE_PASSWORD secret is not configured"
+            exit 1
+          }
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run full production-safe suite
+        run: npm run test:all
+
+      - name: Encrypt production report
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          REPORT_ARCHIVE_PASSWORD: ${{ secrets.REPORT_ARCHIVE_PASSWORD }}
+        run: |
+          if [[ ! -d playwright-report && ! -d test-results ]]; then
+            echo "No report files were generated"
+            exit 0
+          fi
+
+          tar -czf production-playwright-report.tar.gz \
+            playwright-report test-results
+          openssl enc -aes-256-cbc -salt -pbkdf2 \
+            -in production-playwright-report.tar.gz \
+            -out production-playwright-report.tar.gz.enc \
+            -pass env:REPORT_ARCHIVE_PASSWORD
+          rm production-playwright-report.tar.gz
+
+      - name: Upload encrypted production report
+        id: report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: encrypted-production-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: production-playwright-report.tar.gz.enc
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Publish summary and notify
+        if: ${{ always() }}
+        continue-on-error: true
+        run: node scripts/ci-report.mjs
+        env:
+          JOB_STATUS: ${{ job.status }}
+          NOTIFY_MODE: always
+          REPORT_URL: ${{ steps.report.outputs.artifact-url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          WORKFLOW_LABEL: Production smoke monitoring

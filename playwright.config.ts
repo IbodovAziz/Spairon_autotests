@@ -18,7 +18,8 @@ export default defineConfig({
   reporter: [
     ["list"],
     ["html", { outputFolder: "playwright-report", open: "never" }],
-    ["junit", { outputFile: "test-results/junit.xml" }]
+    ["junit", { outputFile: "test-results/junit.xml" }],
+    ["json", { outputFile: "test-results/results.json" }]
   ],
   use: {
     baseURL: appUrl,

@@ -1,7 +1,13 @@
 # Spairon autotests
 
+[![Public Smoke CI](https://github.com/IbodovAziz/Spairon_autotests/actions/workflows/public-smoke.yml/badge.svg)](https://github.com/IbodovAziz/Spairon_autotests/actions/workflows/public-smoke.yml)
+[![Production Smoke](https://github.com/IbodovAziz/Spairon_autotests/actions/workflows/production-smoke.yml/badge.svg)](https://github.com/IbodovAziz/Spairon_autotests/actions/workflows/production-smoke.yml)
+
 Подробное описание сценариев, ожидаемых результатов и последнего контрольного
 прогона: [docs/TEST_CASES.md](docs/TEST_CASES.md).
+
+Настройка GitHub Actions, secrets, Telegram и зашифрованных отчётов:
+[docs/CI_CD.md](docs/CI_CD.md).
 
 Безопасные smoke-тесты production-приложения
 [app.spairon.ru](https://app.spairon.ru) на Playwright + TypeScript.
