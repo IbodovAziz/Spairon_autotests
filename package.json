@@ -1,0 +1,25 @@
+{
+  "name": "spairon-autotests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test --project=public-chromium",
+    "test:public": "playwright test --project=public-chromium",
+    "test:authenticated": "playwright test --project=authenticated-chromium",
+    "test:all": "playwright test",
+    "test:headed": "playwright test --project=public-chromium --headed",
+    "test:debug": "playwright test --project=public-chromium --debug",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.0",
+    "@types/node": "^24.0.0",
+    "dotenv": "^17.0.0",
+    "typescript": "^5.9.0"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
