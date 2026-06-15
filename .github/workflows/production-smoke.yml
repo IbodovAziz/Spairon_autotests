@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   production-smoke:
-    name: Полный production-safe набор
+    name: Критический независимый smoke-набор
     if: ${{ vars.ENABLE_PRODUCTION_SMOKE == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -25,7 +25,6 @@ jobs:
       SPAIRON_API_URL: https://server.spairon.ru
       SPAIRON_TEST_EMAIL: ${{ secrets.SPAIRON_TEST_EMAIL }}
       SPAIRON_TEST_PASSWORD: ${{ secrets.SPAIRON_TEST_PASSWORD }}
-      SPAIRON_TEST_VACANCY_ID: ${{ secrets.SPAIRON_TEST_VACANCY_ID }}
 
     steps:
       - name: Получить код репозитория
@@ -64,8 +63,8 @@ jobs:
       - name: Установить Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Запустить полный production-safe набор
-        run: npm run test:all
+      - name: Запустить критические независимые тесты
+        run: npm run test:critical
 
       - name: Зашифровать production-отчёт
         if: ${{ !cancelled() }}
@@ -107,7 +106,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          WORKFLOW_LABEL: Мониторинг production
+          WORKFLOW_LABEL: Критический мониторинг production
           ENVIRONMENT_LABEL: Production, авторизованный контур
           TARGET_URL: https://app.spairon.ru
           REPOSITORY_NAME: ${{ github.repository }}

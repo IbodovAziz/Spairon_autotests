@@ -39,6 +39,37 @@ function collectTests(suites, collected = [], parentTitles = []) {
   return collected;
 }
 
+function stripAnsi(value) {
+  return String(value ?? "").replace(
+    // eslint-disable-next-line no-control-regex
+    /[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[-a-zA-Z\d/#&.:=?%@~_]+)*)?\u0007)|(?:(?:\d{1,4}(?:[;:]\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g,
+    ""
+  );
+}
+
+function failureReason(result) {
+  const rawMessage =
+    result?.error?.message ??
+    result?.errors?.[0]?.message ??
+    "Подробная причина отсутствует в JSON-отчёте";
+  const message = stripAnsi(rawMessage).replace(/\r/g, "");
+  const lines = message
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const headline = (lines[0] ?? "Неизвестная ошибка").replace(
+    /^Error:\s*/,
+    ""
+  );
+  const expected = lines.find((line) => line.startsWith("Expected:"));
+  const received = lines.find((line) => line.startsWith("Received:"));
+  return [headline, expected, received]
+    .filter(Boolean)
+    .join(" | ")
+    .slice(0, 700);
+}
+
 function calculateSummary(report) {
   const tests = collectTests(report.suites);
   const summary = {
@@ -71,7 +102,10 @@ function calculateSummary(report) {
       summary.skipped += 1;
     } else {
       summary.failed += 1;
-      summary.failedTests.push(test.displayTitle);
+      summary.failedTests.push({
+        reason: failureReason(finalResult),
+        title: test.displayTitle
+      });
     }
   }
 
@@ -146,7 +180,7 @@ function successRate(summary) {
   return `${Math.round(((summary.passed + summary.flaky) / summary.total) * 100)}%`;
 }
 
-function markdownTestList(title, tests) {
+function markdownTestList(title, tests, includeReason = false) {
   if (!tests.length) {
     return [];
   }
@@ -155,14 +189,23 @@ function markdownTestList(title, tests) {
     "",
     `### ${title}`,
     "",
-    ...tests.slice(0, 10).map((test) => `- ${test}`),
+    ...tests.slice(0, 10).flatMap((test) => {
+      const entry =
+        typeof test === "string" ? { title: test, reason: "" } : test;
+      return [
+        `- **${entry.title}**`,
+        ...(includeReason && entry.reason
+          ? [`  - Причина: ${entry.reason}`]
+          : [])
+      ];
+    }),
     ...(tests.length > 10
       ? [`- Ещё тестов: ${tests.length - 10}`]
       : [])
   ];
 }
 
-function telegramTestList(title, tests) {
+function telegramTestList(title, tests, includeReason = false) {
   if (!tests.length) {
     return [];
   }
@@ -170,7 +213,16 @@ function telegramTestList(title, tests) {
   return [
     "",
     `${title}:`,
-    ...tests.slice(0, 5).map((test) => `- ${test}`),
+    ...tests.slice(0, 5).flatMap((test) => {
+      const entry =
+        typeof test === "string" ? { title: test, reason: "" } : test;
+      return [
+        `- ${entry.title}`,
+        ...(includeReason && entry.reason
+          ? [`  Причина: ${entry.reason}`]
+          : [])
+      ];
+    }),
     ...(tests.length > 5 ? [`- Ещё тестов: ${tests.length - 5}`] : [])
   ];
 }
@@ -207,7 +259,7 @@ const markdown = [
   "| Всего | Успешно | Ошибки | Нестабильные | Пропущено | Успешность | Длительность |",
   "| ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
   `| ${summary.total} | ${summary.passed} | ${summary.failed} | ${summary.flaky} | ${summary.skipped} | ${successRate(summary)} | ${formatDuration(summary.durationMs)} |`,
-  ...markdownTestList("Упавшие тесты", summary.failedTests),
+  ...markdownTestList("Упавшие тесты", summary.failedTests, true),
   ...markdownTestList("Нестабильные тесты", summary.flakyTests),
   "",
   "### Ссылки",
@@ -248,7 +300,7 @@ if (shouldNotify()) {
     `Пропущено: ${summary.skipped}`,
     `Успешность: ${successRate(summary)}`,
     `Длительность: ${formatDuration(summary.durationMs)}`,
-    ...telegramTestList("Упавшие тесты", summary.failedTests),
+    ...telegramTestList("Упавшие тесты", summary.failedTests, true),
     ...telegramTestList("Нестабильные тесты", summary.flakyTests),
     "",
     runUrl ? `Запуск: ${runUrl}` : "",

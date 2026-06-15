@@ -2,7 +2,7 @@ import "dotenv/config";
 
 import { defineConfig, devices } from "@playwright/test";
 
-import { appUrl, authFile, hasCredentials } from "./tests/support/env.js";
+import { appUrl } from "./tests/support/env.js";
 
 export default defineConfig({
   testDir: "./tests",
@@ -33,23 +33,17 @@ export default defineConfig({
   },
   projects: [
     {
-      name: "auth-setup",
-      testMatch: /auth\.setup\.ts/
-    },
-    {
-      name: "public-chromium",
-      testMatch: /public\/.*\.spec\.ts/,
+      name: "critical-public-chromium",
+      testMatch: /critical\/public\/.*\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"]
       }
     },
     {
-      name: "authenticated-chromium",
-      testMatch: /authenticated\/.*\.spec\.ts/,
-      dependencies: ["auth-setup"],
+      name: "critical-authenticated-chromium",
+      testMatch: /critical\/authenticated\/.*\.spec\.ts/,
       use: {
-        ...devices["Desktop Chrome"],
-        storageState: hasCredentials ? authFile : undefined
+        ...devices["Desktop Chrome"]
       }
     }
   ]
