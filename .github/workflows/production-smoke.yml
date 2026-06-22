@@ -1,10 +1,9 @@
 name: Мониторинг production
-
 on:
-  schedule:
-    - cron: "0 * * * *"
-  workflow_dispatch:
-
+  push:
+    branches:
+      - main
+  
 permissions:
   contents: read
 
