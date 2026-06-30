@@ -104,7 +104,7 @@ test.describe("Критические проверки интеграции Head
         "API сообщает о подключённом HH, но UI не показывает статус «Подключено»"
       ).toBeVisible();
       await expect(
-        dialog.getByRole("button", { name: "Отключить HeadHunter" }),
+        dialog.getByRole("button", { name: "Отключить" }),
         "Для подключённого HH должна отображаться кнопка отключения"
       ).toBeVisible();
     } else {
